@@ -1,0 +1,20 @@
+1. Sensor list
+- GROVE - 水位センサ（10cm）	https://www.switch-science.com/catalog/6282/
+- GROVE - 6軸加速度・ジャイロセンサ（BMI088）	https://www.switch-science.com/catalog/5343/
+- GROVE - 16 x 2 LCD	https://www.switch-science.com/catalog/5340/
+- GROVE - I2C 高精度温湿度センサ（SHT35）	https://www.switch-science.com/catalog/5337/
+- GROVE - I2C モータードライバ	https://www.switch-science.com/catalog/827/
+- GROVE - I2C タッチセンサ	https://www.switch-science.com/catalog/825/
+- GROVE - I2C デジタル光センサ	https://www.switch-science.com/catalog/1174/
+- GROVE - I2C カラーセンサ v2.0	https://www.switch-science.com/catalog/3338/
+- M5Stack用ToF測距センサユニット	https://www.switch-science.com/catalog/5219/
+- GROVE - I2C OLEDディスプレイ128×64	https://www.switch-science.com/catalog/829/
+- GROVE - 気圧センサ（BMP280）	https://www.switch-science.com/catalog/3373/
+- GROVE - I2C 三軸加速度センサ	https://www.switch-science.com/catalog/823/
+- M5Stack用ジョイスティックユニット	https://www.switch-science.com/catalog/4050/
+- M5Stack用カラーセンサユニット	https://www.switch-science.com/catalog/5218/
+- M5Stack用カード型キーボードユニット	https://www.switch-science.com/catalog/5689/
+- 3軸デジタル加速度計ユニット（ADXL345）	https://www.switch-science.com/catalog/6353/
+- M5Stack用6軸IMUユニット	https://www.switch-science.com/catalog/6623/
+- RGB ロータリーエンコーダピッチ変換基板	https://www.switch-science.com/catalog/6778/
+- GROVE -ドライバつきRGB LEDマトリクス	https://www.switch-science.com/catalog/7010/

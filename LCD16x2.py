@@ -66,14 +66,14 @@ class LCD16x2:
     # Cols: Number of column
     # Lines: 1 or 2 lines
     # Big font only when lines = 1
-    def __init__(self, i2c, cols = 16, lines = 2, big_font = False):
+    def __init__(self, i2c, address = LCD16x2_I2C_ADDRESS):
         self.__i2c = i2c
-        self.__address = LCD16x2_I2C_ADDRESS
+        self.__address = address
 
         self.__config = 0x00
         self.__control = 0x00
         self.__mode = 0x00
-        self.config_lcd(cols, lines, big_font)
+        self.config_lcd()
 
 
     # Write a byte
@@ -190,7 +190,7 @@ class LCD16x2:
     # Display text
     # Should set cursor or clear() before set text
     # text: String to display
-    def print_text(self, text):
+    def print(self, text):
         chars = list(text)
         for c in chars:
             data = [LCD_TYPE_PRINT, ord(c)]
@@ -206,14 +206,14 @@ lcd = LCD16x2(i2c)
 
 lcd.cursor_blink()
 lcd.set_cursor(0, 0)
-lcd.print_text("Demo")
+lcd.print("Demo")
 time.sleep(2)
 lcd.cursor_no_blink()
 
 lcd.set_cursor(0, 0)
-lcd.print_text("Hello world")
+lcd.print("Hello world")
 lcd.set_cursor(0, 1)
-lcd.print_text("22/04/2021")
+lcd.print("22/04/2021")
 time.sleep(2)
 lcd.clear()
 """

@@ -12,6 +12,7 @@
 
 #------------------------------------------------------------------------------------------------------#
 
+from time import sleep
 from i2c.i2c import I2C
 
 #------------------------------------------------------------------------------------------------------#
@@ -67,12 +68,8 @@ class MMA7660FC:
         self.__address = address
         self.__i2c = i2c
         
-        # First config
-        self.mode(MMA7660FC_MODE_STANDBY)
-        self.set_sample_rate(MMA7660FC_AMSR_2)
-        mode = MMA7660FC_MODE_ACTIVE | MMA7660FC_AWE_DS | MMA7660FC_ASE_DS | MMA7660FC_SCPS_1 | MMA7660FC_IAH_LOW
-        self.mode(mode)
-
+        self.__start()
+    
     # Write to register
     def __command(self, register, value):
         self.__i2c.i2c_write_block_data(self.__address, register, [value])
@@ -80,6 +77,14 @@ class MMA7660FC:
     # Read data from register
     def __read_data(self, reg, size):
         return self.__i2c.i2c_read_block_data(self.__address, reg, size)
+
+    def __start(self):
+        # First config
+        self.mode(MMA7660FC_MODE_STANDBY)
+        self.set_sample_rate(MMA7660FC_AMSR_32)
+        mode = MMA7660FC_MODE_ACTIVE | MMA7660FC_AWE_DS | MMA7660FC_ASE_DS | MMA7660FC_SCPS_1 | MMA7660FC_IAH_LOW
+        self.mode(mode)
+        sleep(0.1)
 
     #--------------------------------------------------------------------------------------------------#
     
@@ -92,8 +97,8 @@ class MMA7660FC:
         self.__command(MMA7660FC_SR, rate)
 
     # Get acceleration value
-    # Return x, y, z value
-    def get_accel_xyz(self):
+    # Return x, y, z value (unit g)
+    def get_accel(self):
         values = self.__read_data(MMA7660FC_XOUT, 3)
 
         x = values[0] & 0x3F
@@ -108,18 +113,63 @@ class MMA7660FC:
         if z > 31:
             z -= 64
         
-        return x, y, z
+        # error
+        if x == 0 and y == 0 and z == 0:
+            self.__start()
+            return 0, 0, 0
+
+        return x * 1.5 / 31, y * 1.5 / 31, z * 1.5 / 31
     
+    # Get direction
+    # Return up (z max), down (z min), right (x max), left (x min), front (y max), back (y min)
+    def get_direction(self):
+        x, y, z = self.get_accel()
+        THRESHOLD = 0.3
+
+        if x > THRESHOLD and x > y and x > z:
+            return "Right"
+        elif x < -THRESHOLD and x < y and x < z:
+            return "Left"
+
+        elif y > THRESHOLD and y > x and y > z:
+            return "Front"
+        elif y < -THRESHOLD and y < x and y < z:
+            return "Back"
+
+        elif z > THRESHOLD and z > x and z > y:
+            return "Up"
+        elif z < -THRESHOLD and z < x and z < y:
+            return "Down"
+        
+        else:
+            return "Unknow"
+
+    # Get sensor is vibration or not
+    # Time sleep between 2 measure depends on data rate
+    # Return true if is vibration
+    def is_vibration(self):
+        values1 = list(self.get_accel())
+        sleep(0.1)  # wait new sample
+        values2 = list(self.get_accel())
+        sleep(0.1)  # wait new sample
+        values3 = list(self.get_accel())
+
+        delta = 0
+        for i in range(3):
+            delta += abs(values2[i] - values1[i]) + abs(values3[i] - values2[i])
+
+        return delta > 0.5
+
 #-------------------------- Example --------------------------
 
 """
-from time import sleep
-
 i2c = I2C()
 mma7660fc = MMA7660FC(i2c)
 
 while True:
-    x, y, z = mma7660fc.get_accel_xyz()
+    x, y, z = mma7660fc.get_accel()
     print("accleration of X/Y/Z:  x " + str(x) + "  y " + str(y) + "  z " + str(z))
-    sleep(1)
+    print(mma7660fc.get_direction())
+    print(mma7660fc.is_vibration())
+    sleep(0.01)
 """

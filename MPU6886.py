@@ -181,16 +181,20 @@ class MPU6886:
         ay = int.from_bytes([adc[2], adc[3]], byteorder = 'big', signed = True)
         az = int.from_bytes([adc[4], adc[5]], byteorder = 'big', signed = True)
 
+        if ax == 0 and ay == 0 and az == 0:
+            self.__start()
         return ax, ay, az
 
     # Get gyro adc from register
     def get_gyro_adc(self):
         adc = self.__read_data(IMU_6886_GYRO_XOUT_H, 6)
         # Big endian and unsigned
-        gx = int.from_bytes([adc[0], adc[1]], byteorder = 'big', signed = False)
-        gy = int.from_bytes([adc[2], adc[3]], byteorder = 'big', signed = False)
-        gz = int.from_bytes([adc[4], adc[5]], byteorder = 'big', signed = False)
+        gx = int.from_bytes([adc[0], adc[1]], byteorder = 'big', signed = True)
+        gy = int.from_bytes([adc[2], adc[3]], byteorder = 'big', signed = True)
+        gz = int.from_bytes([adc[4], adc[5]], byteorder = 'big', signed = True)
 
+        if gx == 0 and gy == 0 and gz == 0:
+            self.__start()
         return gx, gy, gz
 
     # Get temperature adc from register
@@ -232,6 +236,46 @@ class MPU6886:
 
         return temp
 
+    # Get direction
+    # Return up (z max), down (z min), right (x max), left (x min), front (y max), back (y min)
+    def get_direction(self):
+        x, y, z = self.get_accel()
+        THRESHOLD = 0.3
+
+        if x > THRESHOLD and x > y and x > z:
+            return "Right"
+        elif x < -THRESHOLD and x < y and x < z:
+            return "Left"
+
+        elif y > THRESHOLD and y > x and y > z:
+            return "Front"
+        elif y < -THRESHOLD and y < x and y < z:
+            return "Back"
+
+        elif z > THRESHOLD and z > x and z > y:
+            return "Up"
+        elif z < -THRESHOLD and z < x and z < y:
+            return "Down"
+        
+        else:
+            return "Unknow"
+
+    # Get sensor is vibration or not
+    # Time sleep between 2 measure depends on data rate
+    # Return true if is vibration
+    def is_vibration(self):
+        values1 = list(self.get_accel())
+        sleep(0.1)  # wait new sample
+        values2 = list(self.get_accel())
+        sleep(0.1)  # wait new sample
+        values3 = list(self.get_accel())
+
+        delta = 0
+        for i in range(3):
+            delta += abs(values2[i] - values1[i]) + abs(values3[i] - values2[i])
+
+        return delta > 0.5
+
 #-------------------------- Example --------------------------
 
 """
@@ -242,11 +286,13 @@ if dev_id != 0x19:
     print("Cannot detect MPU6886")
 
 while True:
-    sleep(1)
+    sleep(0.5)
     ax, ay, az = mpu6886.get_accel()
     print(str(ax) + ", " +  str(ay) + ", " +str(az))
     gx, gy, gz = mpu6886.get_gyro()
     print(str(gx) + ", " +  str(gy) + ", " +str(gz))
     temp = mpu6886.get_temperature()
     print(temp)
+    print(mpu6886.is_vibration())
+    print(mpu6886.get_direction())
 """

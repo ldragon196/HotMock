@@ -11,7 +11,7 @@
 
 #------------------------------------------------------------------------------------------------------#
 
-import time
+from time import sleep
 from i2c.i2c import I2C
 
 #------------------------------------------------------------------------------------------------------#
@@ -90,9 +90,9 @@ M8C                                       = 0x0000  # 0.000 * 2^LUX_SCALE
 #------------------------------------------------------------------------------------------------------#
 
 class TSL2561:
-    def __init__(self, i2c):
+    def __init__(self, i2c, address = TSL2561_I2C_ADDRESS):
         self.__i2c = i2c
-        self.__address = TSL2561_I2C_ADDRESS
+        self.__address = address
 
         # Initialization
         self.__write_register(TSL2561_CONTROL, 0x03)      # Power up
@@ -218,7 +218,7 @@ class TSL2561:
     # ch1: Infrared channel value
     def get_raw_value(self):
         self.__write_register(TSL2561_CONTROL, 0x03)      # Power up
-        time.sleep(0.015)                                 # Power up and wait > 13.7 ms for measure
+        sleep(0.015)                                      # Power up and wait > 13.7 ms for measure
         ch0, ch1 = self.__get_chx_value()                 # Read add channel 0, 1
         self.__write_register(TSL2561_CONTROL, 0x00)      # Power down
         if ch1 == 0:
@@ -235,7 +235,7 @@ class TSL2561:
     # If error, return None
     def get_lux(self):
         self.__write_register(TSL2561_CONTROL, 0x03)      # Power up
-        time.sleep(0.015)                                 # Power up and wait > 13.7 ms for measure
+        sleep(0.015)                                      # Power up and wait > 13.7 ms for measure
         ch0, ch1 = self.__get_chx_value()                 # Read add channel 0, 1
         self.__write_register(TSL2561_CONTROL, 0x00)      # Power down
         if ch1 == 0:
@@ -256,5 +256,5 @@ tsl2561 = TSL2561(i2c)
 while True:
     print(tsl2561.get_lux())
     print(tsl2561.get_raw_value())
-    time.sleep(1)
+    sleep(1)
 """

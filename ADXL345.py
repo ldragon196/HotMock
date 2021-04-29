@@ -13,6 +13,7 @@
 
 #------------------------------------------------------------------------------------------------------#
 
+from time import sleep
 from i2c.i2c import I2C
 
 #------------------------------------------------------------------------------------------------------#
@@ -160,7 +161,7 @@ class ADXL345:
     # DATAx0 as the least significant byte and DATAx1 as the most significant byte
     # Return value of ax, ay, az (unit g (1g = 9.8 m/s^2))
     # Normal x = 0g, y = 0g, z = 1g
-    def get_xyz(self):
+    def get_accel(self):
         read = self.__read_reg(REG_DATAX0, 6)
         # Little endian
         x = int.from_bytes([read[0], read[1]], byteorder = 'little', signed = True)
@@ -169,15 +170,57 @@ class ADXL345:
 
         return self.convert(x), self.convert(y), self.convert(z)
 
+    
+    # Get direction
+    # Return up (z max), down (z min), right (x max), left (x min), front (y max), back (y min)
+    def get_direction(self):
+        x, y, z = self.get_accel()
+        THRESHOLD = 0.3
+
+        if x > THRESHOLD and x > y and x > z:
+            return "Right"
+        elif x < -THRESHOLD and x < y and x < z:
+            return "Left"
+
+        elif y > THRESHOLD and y > x and y > z:
+            return "Front"
+        elif y < -THRESHOLD and y < x and y < z:
+            return "Back"
+
+        elif z > THRESHOLD and z > x and z > y:
+            return "Up"
+        elif z < -THRESHOLD and z < x and z < y:
+            return "Down"
+        
+        else:
+            return "Unknow"
+
+    # Get sensor is vibration or not
+    # Time sleep between 2 measure depends on data rate
+    # Return true if is vibration
+    def is_vibration(self):
+        values1 = list(self.get_accel())
+        sleep(0.1)  # wait new sample
+        values2 = list(self.get_accel())
+        sleep(0.1)  # wait new sample
+        values3 = list(self.get_accel())
+
+        delta = 0
+        for i in range(3):
+            delta += abs(values2[i] - values1[i]) + abs(values3[i] - values2[i])
+
+        return delta > 0.5
+
 #-------------------------- Example --------------------------
 
 """
-from time import sleep
-
 i2c = I2C()
 adxl345 = ADXL345(i2c)
 while True:
-    print(adxl345.get_xyz())
-    sleep(1)
+    print(adxl345.get_accel())
+    print(adxl345.get_direction())
+    print(adxl345.is_vibration())
+    sleep(0.1)
+
 adxl345.stop()
 """

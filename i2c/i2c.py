@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from smbus2 import SMBus, i2c_msg
 
@@ -23,45 +23,54 @@ class I2C:
         self.bus.write_byte(address, byte)
 
     # Write multiple bytes to slave
+    # data: list of byte
     def i2c_write_data(self, address, data):
         msg = i2c_msg.write(address, data)
         self.bus.i2c_rdwr(msg)
 
-    # Write byte to register (cmd)
-    # I2C read n bytes from register address (cmd)
+    # Write byte to register (reg)
+    # I2C read n bytes from register address (reg)
     # Address: Slave address
-    # Cmd: command or register address
+    # Reg: command or register address
     # Data: number of byte to write
-    def i2c_write_block_data(self, address, cmd, data):
-        self.bus.write_i2c_block_data(address, cmd, data)
+    def i2c_write_block_data(self, address, reg, data):
+        self.bus.write_i2c_block_data(address, reg, data)
 
     #--------------------------------------------------------------------------#
 
     # I2C read byte from slave
     # Address: Slave address
+    # Return a byte
     def i2c_read_byte(self, address):
         return self.bus.read_byte(address)
     
-    # I2C read n bytes from register address (cmd)
+    # I2C read multiple bytes from slave
     # Address: Slave address
-    # Cmd: command or register address
+    # Number of byte
+    # Return list of bytes
+    def i2c_read_data(self, address, size):
+        read = i2c_msg.read(address, size)
+        self.bus.i2c_rdwr(read)
+        return list(read)
+    
+    # I2C read n bytes from register address (reg)
+    # Address: Slave address
+    # Reg: command or register address
     # Size: number of byte to read
-    def i2c_read_block_data(self, address, cmd, size):
-        return self.bus.read_i2c_block_data(address, cmd, size)
+    # Return list of bytes
+    def i2c_read_block_data(self, address, reg, size):
+        return self.bus.read_i2c_block_data(address, reg, size)
 
     #--------------------------------------------------------------------------#
     
     # I2C read and write operations in a transactions with repeated start
     # Address: Slave address
     # Write_list: List of data to write
-    #             If None -> only read
     # Read_size: number of byte to read
+    # Return list of bytes
     def i2c_read_write_data(self, address, write_list, read_size):
         read = i2c_msg.read(address, read_size)
-        if write_list != None:
-            write = i2c_msg.write(address, write_list)
-            self.bus.i2c_rdwr(write, read)
-        else:
-            self.bus.i2c_rdwr(read)
+        write = i2c_msg.write(address, write_list)
+        self.bus.i2c_rdwr(write, read)
         
         return list(read)

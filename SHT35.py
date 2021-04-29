@@ -24,8 +24,8 @@ HIGH_REP_WITH_STRH                      = 0x2C06
 #------------------------------------------------------------------------------------------------------#
 
 class SHT35:
-    def __init__(self, i2c):
-        self.__address = SHT35_I2C_ADDRESS
+    def __init__(self, i2c, address = SHT35_I2C_ADDRESS):
+        self.__address = address
         self.__i2c = i2c
         self.soft_reset()
     
@@ -69,7 +69,7 @@ class SHT35:
     # ex: 0x2C06 mean  high repeatability measurement with clock stretching enabled
     # return temperature and humidity
     # if error check crc, return None
-    def read_measure_data_single_shot(self, config):
+    def read_measure_data(self, config = HIGH_REP_WITH_STRH):
         # Send config and read 6 bytes result
         write = [(config >> 8) & 0xFF, config & 0xFF]
         read = self.__i2c.i2c_read_write_data(self.__address, write, 6)
@@ -96,7 +96,7 @@ sht35 = SHT35(i2c)
 time.sleep(.01)
 
 while True:
-    temp, humi = sht35.read_measure_data_single_shot(HIGH_REP_WITH_STRH)
+    temp, humi = sht35.read_measure_data(HIGH_REP_WITH_STRH)
     if temp != None:
         print("Temperature {:.2f}".format(temp))
     else:

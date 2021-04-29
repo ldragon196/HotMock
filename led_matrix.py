@@ -71,8 +71,8 @@ BLACK                                   = 0xFF
 #------------------------------------------------------------------------------------------------------#
 
 class LedMatrix:
-    def __init__(self, i2c):
-        self.__address = RGB_LED_MATRIX_DEF_I2C_ADDR
+    def __init__(self, i2c, address = RGB_LED_MATRIX_DEF_I2C_ADDR):
+        self.__address = address
         self.__i2c = i2c
     
     # I2C communication

@@ -13,6 +13,7 @@
 
 #------------------------------------------------------------------------------------------------------#
 
+import math
 from time import sleep
 from i2c.i2c import I2C
 
@@ -89,6 +90,7 @@ class ADXL345:
 
         self.set_range(srange)
         self.set_rate(ADXL345_RATE_200HZ)
+        self.config_tap_detect()
         self.start()
 
     # Write register
@@ -141,6 +143,15 @@ class ADXL345:
     def get_device_id(self):
         return self.__read_reg(REG_DEVID, 1)[0]
 
+    def config_tap_detect(self):
+        self.__write_reg(REG_TAP_AXES, 0x07)     # enable tap detection on XYZ axis
+        self.__write_reg(REG_THRESH_TAP, 0x28)   # set tap threshold 2.5g/.0625
+        self.__write_reg(REG_DUR, 0x20)          # set tap duration .02 sec/.000625
+        self.__write_reg(REG_LATENT, 0x50)       # double tap latency .1sec/.00125
+        self.__write_reg(REG_WINDOW, 0xF0)       # double tap window .3sec/.00125
+        self.__write_reg(REG_INT_ENABLE, 0x60)   # int enable
+        self.__write_reg(REG_INT_MAP, 0x00)      # int map reg 0 means INT1
+        
     #--------------------------------------------------------------------------------------------------#
 
     # Start measure value
@@ -170,11 +181,47 @@ class ADXL345:
 
         return self.convert(x), self.convert(y), self.convert(z)
 
+    # Get tap status
+    # Return Single Tap, Double Tap or None
+    def get_tap(self):
+        read = self.__read_reg(REG_INT_SOUCE, 1)[0]
+        if ((read >> 5) & 0x01):
+            return "Double Tap"
+        elif ((read >> 6) & 0x01):
+            return "Single Tap"
+        else:
+            return None
+
+    # Get Tilt angle
+    # x, y, z: accel x, y, z
+    # Return x, y, z angle in radian
+    # https://forum.arduino.cc/t/how-to-get-degrees-of-rotation-from-raw-acceleration-data/451992/11
+    # https://wiki.dfrobot.com/How_to_Use_a_Three-Axis_Accelerometer_for_Tilt_Sensing
+    def get_tilt_angle(self, x, y, z):
+        if y == 0 and z == 0 and x >= 0:
+            ax = math.pi / 2
+        elif y == 0 and z == 0 and x < 0:
+            ax = -math.pi / 2
+        else:
+            ax = math.atan(x / math.sqrt(pow(y, 2) + pow(z, 2)))
+
+        if x == 0 and z == 0 and y >= 0:
+            ay = math.pi / 2
+        elif x == 0 and z == 0 and y < 0:
+            ay = -math.pi / 2
+        else:
+            ay = math.atan(y / math.sqrt(pow(x, 2) + pow(z, 2)))
+        
+        if z == 0:
+            az = 0
+        else:
+            az = math.atan(math.sqrt(pow(x, 2) + pow(y, 2)) / z)
+
+        return ax, ay, az
     
     # Get direction
     # Return up (z max), down (z min), right (x max), left (x min), front (y max), back (y min)
-    def get_direction(self):
-        x, y, z = self.get_accel()
+    def get_direction(self, x, y, z):
         THRESHOLD = 0.3
 
         if x > THRESHOLD and x > y and x > z:
@@ -217,10 +264,18 @@ class ADXL345:
 i2c = I2C()
 adxl345 = ADXL345(i2c)
 while True:
-    print(adxl345.get_accel())
-    print(adxl345.get_direction())
-    print(adxl345.is_vibration())
-    sleep(0.1)
+    x, y, z = adxl345.get_accel()
+    print(x, y, z)
+    # print(adxl345.get_direction(x, y, z))
+    # print(adxl345.is_vibration())
+    
+    # tap = adxl345.get_tap()
+    # if tap != None:
+    #     print(tap)
+    # sleep(0.3)   # must wait next tap
+
+    print(adxl345.get_tilt_angle(x, y, z))
+    sleep(0.5)
 
 adxl345.stop()
 """

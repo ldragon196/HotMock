@@ -14,6 +14,31 @@ from i2c.i2c import I2C
 
 #------------------------------------------------------------------------------------------------------#
 
+import io
+import fcntl
+import sys
+
+I2C_SLAVE = 0x0703
+
+# Write I2C without SMBus because SMBus max block size is 32 bytes
+class I2C_Raw:
+    def __init__(self, device, bus):
+        self.fr = io.open("/dev/i2c-"+str(bus), "rb", buffering=0)
+        self.fw = io.open("/dev/i2c-"+str(bus), "wb", buffering=0)
+
+        fcntl.ioctl(self.fr, I2C_SLAVE, device)
+        fcntl.ioctl(self.fw, I2C_SLAVE, device)
+
+    # Write multiple byte
+    def write(self, data):
+        self.fw.write(bytearray(data))
+    
+    def close(self):
+        self.fw.close()
+        self.fr.close()
+
+#------------------------------------------------------------------------------------------------------#
+
 RGB_LED_MATRIX_DEF_I2C_ADDR          	= 0x65 # The device i2c address in default
 
 GROVE_TWO_RGB_LED_MATRIX_VID 			= 0x2886 # Vender ID of the device
@@ -291,6 +316,39 @@ class LedMatrix:
 
         self.__send_data(I2C_CMD_DISP_COLOR_ANIMATION, data)
 
+    # Display user-defined frames on LED matrix
+    # Buffer: The data pointer. 1 frame needs 64bytes data
+    #         Example:  data = [0x25, 0x35, 0x55, 0x55, 0x55, 0x55, 0x55, 0xAA,
+    #                           0x55, 0x25, 0x55, 0x55, 0x55, 0x55, 0xAA, 0x55,
+    #                           0x55, 0x55, 0x25, 0x55, 0x55, 0xAA, 0x55, 0x55,
+    #                           0x55, 0x55, 0x55, 0xFF, 0x00, 0x55, 0x55, 0x55,
+    #                           0x55, 0x55, 0x55, 0x00, 0xFF, 0x55, 0x55, 0x55,
+    #                           0x55, 0x55, 0xAA, 0x55, 0x55, 0x25, 0x55, 0x55,
+    #                           0x55, 0xAA, 0x55, 0x55, 0x55, 0x55, 0x25, 0x55,
+    #                           0xAA, 0x55, 0x55, 0x55, 0x35, 0x55, 0x55, 0x25]
+    # Use HSV color, 0 - 359 H ~ 0 - 254 (fixed S = 1, V = 1)
+    # 255: Off
+    # https://en.wikipedia.org/wiki/HSL_and_HSV
+    # Example 0x00 -> H = 0, S = 1, V = 1
+    #         0x55 -> H = 120, S = 1, V = 1
+    #         0xAA -> H = 240, S = 1, V = 1
+    #         0xFE -> H = 359, S = 1, V = 1
+    #         0xFF -> Off
+    # Duration: Set the display time(ms) duration. Set it to 0 to not display
+    # Forever: Set it to true to display forever, or set it to false to display one time
+    def display_frame(self, buffer, duration, forever):
+        data = [I2C_CMD_DISP_CUSTOM]
+        data.append(duration & 0xFF)
+        data.append((duration >> 8) & 0xFF)
+        data.append(int(forever == True))
+        data.append(0x01)
+        data += [0x00, 0x00, 0x00]
+        data += buffer
+
+        dev = I2C_Raw(RGB_LED_MATRIX_DEF_I2C_ADDR, 1)
+        dev.write(data)
+        dev.close()
+
 #-------------------------- Example --------------------------
 
 # i2c = I2C()
@@ -299,12 +357,18 @@ class LedMatrix:
 # device_id = ledMatrix.get_device_uid()
 # ledMatrix.set_orientation(DISPLAY_ROTATE_90)
 # ledMatrix.set_display_offset(2, 5)
-# ledMatrix.display_bar(12, 1000, False, GREEN)
 # ledMatrix.display_emoji(0, 1000, True)
+# ledMatrix.display_bar(12, 1000, False, GREEN)
 # ledMatrix.display_number(19, 1000, True, BLUE)
-# ledMatrix.display_string("Long", 4000, False, GREEN)
+# ledMatrix.display_string("Long, Dat", 4000, True, GREEN)
 # ledMatrix.display_color_block(0xFF00FF, 0, True)
 # ledMatrix.display_color_bar(2, 3000, False)
 # ledMatrix.display_color_wave(WHITE, 100, True)
 # ledMatrix.display_clock_wise(False, True, 1000, False)
 # ledMatrix.display_color_animation(1, 1000, False)
+
+# data = [None] * 64
+# for i in range(64):
+#     data[i] = i * 4
+
+# ledMatrix.display_frame(data, 10000, False)

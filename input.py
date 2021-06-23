@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# cardkb.py
+# input.py
 #
 # Created on: June 23, 2021
 # Author: LongHD
@@ -70,6 +70,7 @@ class LTC2497:
     
 #-------------------------- Example --------------------------
 
+"""
 i2c = I2C()
 ltc2497 = LTC2497(i2c)
 while True:
@@ -82,3 +83,4 @@ while True:
             print("Channel %d is %.8f Volts" % ((i), volts))
         
         sleep(1)
+"""

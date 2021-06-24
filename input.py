@@ -7,6 +7,7 @@
 #
 # LTC2497 (ACD input and I2C interface)
 # Reference https://www.mouser.jp/datasheet/2/609/2497fb-1267645.pdf
+# https://www.alchemy-power.com/wp-content/uploads/2017/03/Pi-16ADC-User-Guide.pdf
 #
 
 #------------------------------------------------------------------------------------------------------#
@@ -57,6 +58,7 @@ class LTC2497:
         # read value
         reading = self.__i2c.i2c_read_block_data(self.__address, channel_cmd, LANGE)
         valor = ((((reading[0] & 0x3F)) << 16)) + ((reading[1] << 8)) + (((reading[2] & 0xE0)))
+        sleep(TIEMPO)
 
         # End of conversion of the Channel
         volts = valor * VREF / MAX_READING
@@ -74,7 +76,7 @@ class LTC2497:
 i2c = I2C()
 ltc2497 = LTC2497(i2c)
 while True:
-    for i in range(16):
+    for i in range(1):
         # Get channel 0
         volts = ltc2497.get_adc(i)
         if volts is None:

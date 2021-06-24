@@ -7,12 +7,14 @@
 #
 # Reference https://github.com/Seeed-Studio/OLED_Display_128X64
 # https://wiki.seeedstudio.com/Grove-OLED_Display_0.96inch/
+# NOTE: run $pip3 install Pillow
 #
 
 #------------------------------------------------------------------------------------------------------#
 
 import time
 from i2c.i2c import I2C
+from PIL import Image, ImageDraw, ImageOps
 
 #------------------------------------------------------------------------------------------------------#
 
@@ -147,6 +149,12 @@ class OLED128x64:
     def __init__(self, i2c, address = OLED_I2C_ADDRESS):
         self.__i2c = i2c
         self.__address = address
+        
+        self.width = 128
+        self.height = 64
+        self.pages = int(self.height / 8)
+        self.image = Image.new('1', (self.width, self.height))
+        self.canvas = ImageDraw.Draw(self.image) # this is a "draw" object for preparing display contents
 
         self.off()
         time.sleep(.005)
@@ -165,6 +173,10 @@ class OLED128x64:
     def __command(self, command):
         data = [OLED_COMMAND_MODE, command]
         self.__i2c.i2c_write_data(self.__address, data)
+
+    def __send_frame(self, frame):
+        for i in range(0, len(frame), 31):
+            self.__i2c.i2c_write_block_data(self.__address, OLED_DATA_MODE, list(frame[i:i+31]))
 
     #--------------------------------------------------------------------------------------------------#
 
@@ -255,18 +267,53 @@ class OLED128x64:
         for c in text:
             self.putc(c)
 
+    # Display image at location
+    # path: Image path
+    # x, y: location
+    def display_image(self, path, x, y):
+        # self.clear()      # Clear display
+
+        # Open image
+        logo = Image.open(path).convert('1')    # Convert to mode '1'
+        logo = ImageOps.mirror(logo)            # Flip image because when display, image is flipped
+
+        # Clear old data and draw new image
+        self.canvas.rectangle((0, 0, self.width - 1, self.height - 1), outline = 0, fill = 0)
+        self.canvas.bitmap((self.width - logo.width - x, y), logo, fill = 1)
+
+        # Send image frame to oled
+        pix = list(self.image.getdata())
+        step = self.width * 8
+        buf = []
+        for y in range(0, self.pages * step, step):
+            i = y + self.width - 1
+            while i >= y:
+                byte = 0
+                for n in range(0, step, self.width):
+                    byte |= (pix[i + n] & 0x01) << 8
+                    byte >>= 1
+
+                buf.append(byte)
+                i -= 1
+
+        self.__send_frame(buf) # push out the whole lot
+
 #-------------------------- Example --------------------------
 
-"""
 i2c = I2C()
 oled = OLED128x64(i2c)
-oled.enable_scroll()
-oled.config_scroll(OLED_SCROLL_RIGHT, 0, 7, OLED_SCROLL_4_FRAMES)
-oled.page_mode()
-oled.horizontal_mode()
-oled.set_brightness(255)
-oled.set_cursor(0, 0)
-oled.print("Hello")
-oled.set_cursor(0, 5)
-oled.print("Hoang Duc Long")
-"""
+# oled.disable_scroll()
+# oled.config_scroll(OLED_SCROLL_RIGHT, 0, 7, OLED_SCROLL_4_FRAMES)
+# oled.page_mode()
+# oled.horizontal_mode()
+# oled.set_brightness(255)
+# oled.set_cursor(0, 0)
+# oled.print("Hello")
+# oled.set_cursor(0, 5)
+# oled.print("Hoang Duc Long")
+# time.sleep(1)
+oled.display_image('image/kaito_kid.png', 0, 0)
+time.sleep(3)
+oled.display_image('image/earth.png', 32, 0)
+time.sleep(3)
+oled.display_image('image/pi_logo.png', 32, 0)
